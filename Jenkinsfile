@@ -74,7 +74,7 @@ pipeline {
                     echo "****** Deploying to DEV-ENV *****"
                     script {
                         // Running ssh command using credentials
-                        sh "sshpass -p \$PASSWORD -v ssh -o StrictHostKeyChecking=no \$USERNAME@$dev_ip \"docker images\""
+                        sh "sshpass -p $PASSWORD -v ssh -o StrictHostKeyChecking=no $USERNAME@$dev_ip \"docker images\""
                     }
                 }
             }
