@@ -1,0 +1,186 @@
+pipeline {
+    agent {
+        label 'k8s-slave'
+    }
+    parameters {
+        choice(name: 'buildOnly', choices: 'no\nyes', description: 'this will run maven build')
+        choice(name: 'scanOnly',  choices: 'no\nyes', description: 'this will run sonarscans')
+        choice(name: 'dockerPush',choices: 'no\nyes', description: 'this will trigger build,sonarscan and image is build and pushed to repo')
+        choice(name: 'deploytoDev', choices: 'no\nyes', description: 'this will deploy to dev')
+        choice(name: 'deploytoTest', choices: 'no\nyes', description: 'this will deploy to test')
+        choice(name: 'deploytoStage', choices: 'no\nyes', description: 'this will deploy to stage')
+        choice(name: 'deploytoProd', choices: 'no\nyes', description: 'this will deploy to prod')
+    }
+
+    tools {
+        maven 'Maven-3.8.8'
+        jdk 'JDK-17'
+    }
+    
+    environment {
+        APPLICATION_NAME='eureka'
+        POM_VERSION = readMavenPom().getVersion()
+        POM_PACKAGING = readMavenPom().getPackaging()
+        DOCKER_HUB = "docker.io/kishoresamala84"
+        DOCKER_CREDS = credentials("kishoresamala_docker_creds")
+    }
+
+    stages {
+        stage (' ***** BUILD STAGE ***** ') {
+            when {
+                expression {
+                    params.buildOnly == 'yes'
+                }
+            }
+            steps {
+                script {
+                    buildApp().call()
+                }
+            }
+        }
+
+        stage (' ***** SONARQUBE STAGE ***** ') {
+            when {
+                anyOf {
+                expression {
+                    params.buildOnly == 'yes'
+                    params.scanOnly == 'yes'                    
+                    params.dockerPush == 'yes'
+                }
+            }
+
+            }
+            steps {
+                echo "***** sonar stage implementing *****"                
+                withSonarQubeEnv('sonarqube') {
+                    sh """
+                         mvn sonar:sonar \
+                            -Dsonar.projectKey=i27-eureka \
+                            -Dsonar.host.url=http://34.48.14.175:9000 \
+                            -Dsonar.login=sqa_e27457e7a7bce38fdd73f05e767b4368d7355ee3
+                    """
+                }
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage ('BUILD-FORMAT') {
+            steps {
+                script {
+                    // Existing : i27-eureka-0.0.1-SNAPSHOT.jar
+                    // Destination: i27-eureka-buildnumber-branchname.packagin
+                    sh """
+                    echo "Testing source jar-source: i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING}"
+                    echo "Tesing destination Jar: i27-${env.APPLICATION_NAME}-${currentBuild.number}-${BRANCH_NAME}.${env.POM_PACKAGING}"
+                    """ 
+                }
+            }
+        }
+
+        stage (' ***** Docker-Build-Push ***** ') {
+            when {
+                expression {
+                    params.dockerPush == 'yes'
+                }
+            }
+            steps {
+                script {
+                    dockerBuildAndPush().call()
+            }
+        }
+
+      }
+
+        stage (' ***** Deploy to dev ***** ') {
+            when {
+                expression {
+                    params.deploytoDev == 'yes'
+                }
+            }
+            steps {
+                script{
+                    dockerDeploy('dev','1399','8761').call()
+                }
+
+            }
+        }
+
+        stage (' ***** Deploy to Test ***** ') {
+            when {
+                expression {
+                    params.deploytoTest == 'yes'
+                }
+            }
+            steps {
+                script {
+                    dockerDeploy('test','2399','8761')
+                }
+            }
+        }
+
+        stage (' ***** Deploy to Stage ***** ') {
+            when {
+                expression {
+                    params.deploytoStage == 'yes'
+                }
+            }
+            steps {
+                script {
+                    dockerDeploy('stage','3399','8761')
+                }
+            }
+        }
+
+        stage (' ***** Deploy to PROD ***** ') {
+            when {
+                expression {
+                    params.deploytoProd == 'yes'
+                }
+            }
+            steps {
+                script {
+                    dockerDeploy('prod','4399','8761')
+                }
+            }
+        }
+    }
+}
+
+def buildApp() {
+    return {
+            echo "*****Building the Application *****"
+            sh "mvn clean package -DskipTest=true"
+            archiveArtifacts 'target/*.jar'        
+    }
+}
+
+def dockerBuildAndPush() {
+    return {
+        echo "****** Building Doker image *******"                    
+        sh "cp ${WORKSPACE}/target/i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING} ./.cicd"
+        sh "docker build --no-cache --build-arg JAR_SOURCE=i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING} -t ${DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT} ./.cicd "
+        sh "docker login -u ${DOCKER_CREDS_USR} -p ${DOCKER_CREDS_PSW}"
+        echo "****** Building Doker image *******" 
+        sh "docker push ${DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}"                    
+       }        
+}
+
+def dockerDeploy(envDeploy, hostPort, contPort) {
+    return {
+                echo " ***** deploy to $envDeploy env ***** "
+                withCredentials([usernamePassword(credentialsId: 'john_docker_vm_passwd', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                        script {    
+                            try {
+                                sh "sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no '$USERNAME'@$dev_ip \"docker stop ${env.APPLICATION_NAME}-dev \""
+                                sh "sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no '$USERNAME'@$dev_ip \"docker rm ${env.APPLICATION_NAME}-dev \""
+                            }
+                            catch(err){
+                                echo "Error Caught: $err"                      
+                            }  
+                            sh "sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no '$USERNAME'@$dev_ip \"docker container run -dit -p $hostPort:$contPort --name ${env.APPLICATION_NAME}-dev ${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}\""                    
+                        }
+                   }
+    }
+}
