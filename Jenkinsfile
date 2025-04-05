@@ -10,12 +10,12 @@ pipeline {
 
     parameters {
         choice(name: 'buildOnly', choices: 'no\nyes', description: 'MVN build application')
-        choice(name: 'scanOnly', choices: 'no\yes', description: 'SonarQube scan app')
-        choice(name: 'dockerbuildandpush', choices: 'no\yes', description: 'dockerbuildandpush')
-        choice(name: 'deploytodev', choices: 'no\yes', description: 'deploy to dev')
-        choice(name: 'deploytotest', choices: 'no\yes', description: 'deploy to test')
-        choice(name: 'deploytostage', choices: 'no\yes', description: 'deploy to stage')
-        choice(name: 'deploytoprod', choices: 'no\yes', description: 'deploytoprod')
+        choice(name: 'scanOnly', choices: 'no\nyes', description: 'SonarQube scan app')
+        choice(name: 'dockerbuildandpush', choices: 'no\nyes', description: 'dockerbuildandpush')
+        choice(name: 'deploytodev', choices: 'no\nyes', description: 'deploy to dev')
+        choice(name: 'deploytotest', choices: 'no\nyes', description: 'deploy to test')
+        choice(name: 'deploytostage', choices: 'no\nyes', description: 'deploy to stage')
+        choice(name: 'deploytoprod', choices: 'no\nyes', description: 'deploytoprod')
     }
 
     environment {
