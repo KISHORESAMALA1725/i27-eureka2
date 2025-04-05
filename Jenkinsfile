@@ -70,11 +70,9 @@ pipeline {
 
         stage (' ***** DEPLOYING TO DEV_ENV ***** ') {
             steps {
-                script {
                     withCredentials([usernamePassword(credentialsId:'john_docker_vm_passwd', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) 
                         echo " ****** Deploying to DEV-ENV ***** "                    
                         sh "sshpass -p '/$PASSWORD' -v ssh -o StrictHostKeyChecking=no '/$USERNAME'@$dev_ip \"docker container run -dit -p 8761:8761 --name ${env.APPLICATION_NAME}-dev ${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}\""  
-                }
             }
         }
     }
