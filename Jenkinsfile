@@ -51,22 +51,18 @@ pipeline {
             }
         }
 
-        stage (' ***** DOCKER BUILD AND PUSH ***** ') {
+        stage (' ***** Docker-Build-Push ***** ') {
             steps {
                 script {
-                    echo " ***** Building Docker Image ***** "
+                    echo "****** Building Doker image *******"                    
                     sh "cp ${WORKSPACE}/target/i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING} ./.cicd"
-                    sh "docker build --no-cache --build-arg JAR_SOURCE=i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING} -t ${DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT} ./.cicd"
+                    sh "docker build --no-cache --build-arg JAR_SOURCE=i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING} -t ${DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT} ./.cicd "
                     sh "docker login -u ${DOCKER_CREDS_USR} -p ${DOCKER_CREDS_PSW}"
-                    echo " ***** PUSHING THE IMAGE TO DOCKER REPO ***** "
-                    sh "docker push ${DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}"
-
+                    echo "****** Building Doker image *******" 
+                    sh "docker push ${DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}"                    
                 }
             }
-        }       
+        }
+      
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 77978a1782f46d7377ebaa8fc5fc81deb42324ae
