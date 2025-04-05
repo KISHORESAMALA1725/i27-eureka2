@@ -51,6 +51,6 @@ pipeline {
             }
         }
 
-        stage (' ***** DOCKER BUILD AND PUSH ***** ')        
+        // stage (' ***** DOCKER BUILD AND PUSH ***** ')        
     }
 }
