@@ -48,7 +48,7 @@ pipeline {
                 steps {
                     script {
                     sh "echo SOURCE JAR file i27-${env.APPLICATION_NAME}-${env.VERSION}.${env.PACKAGING}"
-                    sh "echo TARGER JAR file i27-${env.APPLICATION_NAME}-${currentBuild.number}-${BRANCH-NAME}.${env.PACKAGING}"
+                    sh "echo TARGER JAR file i27-${env.APPLICATION_NAME}-${currentBuild.number}-${BRANCH_NAME}.${env.PACKAGING}"
 
                     }
                 }
