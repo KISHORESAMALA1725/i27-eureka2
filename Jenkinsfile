@@ -105,7 +105,7 @@ def buildApp() {
 }
 
 
-def DockerBuildPush() {
+def dockerBuildPush() {
     return {
         echo "****** Building Doker image *******"                    
         sh "cp ${WORKSPACE}/target/i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING} ./.cicd"
