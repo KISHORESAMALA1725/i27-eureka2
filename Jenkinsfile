@@ -42,6 +42,8 @@ pipeline {
 
             }
 
+        }
+
             stage (' ***** BUILD FORMAT ***** ') {
                 steps {
                     script {
@@ -50,7 +52,6 @@ pipeline {
 
                     }
                 }
-            }
-        }
+            }        
     }
 }
