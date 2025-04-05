@@ -8,6 +8,16 @@ pipeline {
         jdk "JDK-17"
     }
 
+    parameters {
+        choice(name: 'buildOnly', choices: 'no\nyes', description: 'MVN build application')
+        choice(name: 'scanOnly', choices: 'no\yes', description: 'SonarQube scan app')
+        choice(name: 'dockerbuildandpush', choices: 'no\yes', description: 'dockerbuildandpush')
+        choice(name: 'deploytodev', choices: 'no\yes', description: 'deploy to dev')
+        choice(name: 'deploytotest', choices: 'no\yes', description: 'deploy to test')
+        choice(name: 'deploytostage', choices: 'no\yes', description: 'deploy to stage')
+        choice(name: 'deploytoprod', choices: 'no\yes', description: 'deploytoprod')
+    }
+
     environment {
         APPLICATION_NAME = 'eureka'
         POM_VERSION = readMavenPom().getVersion()
@@ -18,6 +28,11 @@ pipeline {
 
     stages {
         stage (' ****** BUILD STAGE ***** ' ) {
+            when {
+                expression {
+                    params.buildOnly == 'yes'
+                }
+            }
             steps {
                 script {
                     buildApp().call()
@@ -55,6 +70,13 @@ pipeline {
         }
 
         stage (' ***** Docker-Build-Push ***** ') {
+            when {
+                expression {
+                    params.buildOnly == 'yes'
+                    params.scanOnly == 'yes'
+                    params.dockerbuildandpush == 'yes'
+                }
+            }
             steps {
                 script {
                   dockerBuildPush().call()
@@ -63,6 +85,11 @@ pipeline {
         }
 
         stage (' ***** Deploy to DEV-ENV ***** ') {
+            when {
+                expression {
+                    params.deploytodev == 'yes'
+                }
+            }
             steps {
                 script {
                     deployToDocker('dev','5001','8761').call()
@@ -71,6 +98,11 @@ pipeline {
          }
 
          stage (' ***** Deploy to TEST-ENV ***** ') {
+            when {
+                expression {
+                    params.deploytotest == 'yes'
+                }
+            }
             steps {
                 script {
                     deployToDocker('test','5002','8761').call()
@@ -79,6 +111,11 @@ pipeline {
          }
 
          stage (' ***** Deploy to STAGE-ENV ***** ') {
+            when {
+                expression {
+                    params.deploytostage == 'yes'
+                }
+            }
             steps {
                 script {
                     deployToDocker('stage','5003','8761').call()
@@ -87,6 +124,11 @@ pipeline {
          }
 
          stage (' ***** Deploy to PROD-ENV ***** ') {
+            when {
+                expression {
+                    params.deploytoprod == 'yes'
+                }
+            }
             steps {
                 script {
                     deployToDocker('prod','5004','8761').call()
