@@ -1,0 +1,55 @@
+# Deployment file for eureka 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: i27-eureka-dev
+  labels:
+    app: i27-eureka-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: i27-eureka-dev
+  template:
+    metadata:
+      labels:
+        app: i27-eureka-dev
+    spec:
+      imagePullSecrets:
+      - name: jfrog-registry
+      containers:
+      - name: i27-eureka-dev
+        image: DIT # Image tag will be replaced by shared library
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: i27-eureka-dev
+  labels:
+    app: i27-eureka-dev
+spec:
+  # type: NodePort
+  ports:
+  - port: 80 # Port on which service is running
+    targetPort: 8761 # Port on which eureka is running
+  selector:
+    app: i27-eureka-dev 
+--- 
+# Creating a ingress controller 
+# l7 load balancer
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: i27-eureka-dev-ingress
+spec:
+  rules:
+  - host: eureka-dev.i27academy.in
+    http:
+      paths:
+      - path: "/"
+        pathType: Prefix
+        backend:
+          service:
+            name: i27-eureka-dev
+            port:
+              number: 80
