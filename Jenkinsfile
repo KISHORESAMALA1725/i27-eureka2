@@ -8,6 +8,14 @@ pipeline {
         jdk "JDK-17"
     }
 
+    environment {
+        APPLICATION_NAME = 'eureka'
+        POM_VERION = readMavenPom().getVersion()
+        POM_PACKAGING = readMavenPom().getPackaging()
+        DOCKER_HUB = 'docker.io/kishoresamala84'
+        DOCKER_CREDS = credentials("kishoresamala84_docker_creds")
+    }
+
     stages {
         stage (' ****** BUILD STAGE ***** ' ) {
             steps {
@@ -32,6 +40,16 @@ pipeline {
                     waitForQualityGate abortPipeline: true
                 }
 
+            }
+
+            stage (' ***** BUILD FORMAT ***** ') {
+                steps {
+                    script {
+                    sh "echo SOURCE JAR file i27-${env.APPLICATION_NAME}-${env.VERSION}.${env.PACKAGING}"
+                    sh "echo TARGER JAR file i27-${env.APPLICATION_NAME}-${currentBuild.number}-${BRANCH-NAME}.${env.PACKAGING}"
+
+                    }
+                }
             }
         }
     }
