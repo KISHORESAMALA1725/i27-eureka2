@@ -68,14 +68,17 @@ pipeline {
             }
         }
 
-        stage (' ***** DEPLOYING TO DEV_ENV ***** ') {
+        stage('***** DEPLOYING TO DEV_ENV *****') {
             steps {
-                withCredentials([usernamePassword(credentialsId:'john_docker_vm_passwd', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) 
-                    echo " ****** Deploying to DEV-ENV ***** "
+                withCredentials([usernamePassword(credentialsId: 'john_docker_vm_passwd', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    echo "****** Deploying to DEV-ENV *****"
                     script {
-                        sh "sshpass -p $PASSWORD -v ssh -o StrictHostKeyChecking=no $USERNAME@$dev_ip \"docker images\""
+                        // Running ssh command using credentials
+                        sh "sshpass -p \$PASSWORD -v ssh -o StrictHostKeyChecking=no \$USERNAME@$dev_ip \"docker images\""
+                    }
                 }
             }
         }
+
     }
 }
