@@ -27,14 +27,16 @@ pipeline {
 
         stage (' ***** SONARQUBE STAGE ***** ') {
             steps {
+                script {
                 echo " ***** SONARQUBE STAGE ***** "
-                withSonarQubeEnv('sonarqube') {
-                    sh """
-                    mvn clean verify sonar:sonar \
-                    -Dsonar.projectKey=i27-eureka2 \
-                    -Dsonar.host.url=http://34.48.14.175:9000 \
-                    -Dsonar.login=sqa_1770f1190375e8cf9d65df9b102c70d43ff4991b 
-                    """                   
+                    withSonarQubeEnv('sonarqube') {
+                        sh """
+                        mvn clean verify sonar:sonar \
+                        -Dsonar.projectKey=i27-eureka2 \
+                        -Dsonar.host.url=http://34.48.14.175:9000 \
+                        -Dsonar.login=sqa_1770f1190375e8cf9d65df9b102c70d43ff4991b 
+                        """                   
+                    }                    
                 }
                 timeout(time: 2, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
