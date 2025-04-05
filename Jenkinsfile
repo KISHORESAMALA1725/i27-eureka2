@@ -47,8 +47,8 @@ pipeline {
             stage (' ***** BUILD FORMAT ***** ') {
                 steps {
                     script {
-                    sh "echo SOURCE JAR file i27-${env.APPLICATION_NAME}-${env.VERSION}.${env.PACKAGING}"
-                    sh "echo TARGER JAR file i27-${env.APPLICATION_NAME}-${currentBuild.number}-${BRANCH_NAME}.${env.PACKAGING}"
+                    sh "echo SOURCE JAR file i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING}"
+                    sh "echo TARGER JAR file i27-${env.APPLICATION_NAME}-${currentBuild.number}-${BRANCH_NAME}.${env.POM_PACKAGING}"
 
                     }
                 }
