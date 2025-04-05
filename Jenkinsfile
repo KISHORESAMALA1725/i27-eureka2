@@ -89,7 +89,7 @@ pipeline {
          stage (' ***** Deploy to PROD-ENV ***** ') {
             steps {
                 script {
-                    deploytoDev('prod','5004','8761').call()
+                    deployToDocker('prod','5004','8761').call()
                 }
             }
          }
