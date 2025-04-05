@@ -81,7 +81,7 @@ pipeline {
          stage (' ***** Deploy to STAGE-ENV ***** ') {
             steps {
                 script {
-                    deployToDocker('stage','5003','8761')
+                    deployToDocker('stage','5003','8761').call()
                 }
             }
          }
@@ -89,7 +89,7 @@ pipeline {
          stage (' ***** Deploy to PROD-ENV ***** ') {
             steps {
                 script {
-                    deploytoDev('prod','5004','8761')
+                    deploytoDev('prod','5004','8761').call()
                 }
             }
          }
@@ -130,7 +130,7 @@ def deployToDocker (envDeploy, hostPort, contPort){
                         echo "Error Caught: $err"                      
                     }  
                     sh "sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no '$USERNAME'@$dev_ip \"docker container run -dit -p $hostPort:$contPort --name ${env.APPLICATION_NAME}-$envDeploy ${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}\""                    
-                        }
+                }
          }
     }
 }
