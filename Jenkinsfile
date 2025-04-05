@@ -1,6 +1,6 @@
 pipeline {
     agent {
-        label k8s-slave
+        label "k8s-slave"
     }
 
     tools {
