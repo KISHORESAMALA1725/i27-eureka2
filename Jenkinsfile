@@ -33,7 +33,7 @@ pipeline {
                 echo " ***** SONARQUBE STAGE ***** "
                     withSonarQubeEnv('sonarqube') {
                         sh """
-                        mvn clean verify sonar:sonar \
+                         mvn clean verify sonar:sonar \
                         -Dsonar.projectKey=i27-eureka2 \
                         -Dsonar.host.url=http://34.48.14.175:9000 \
                         -Dsonar.login=sqa_1770f1190375e8cf9d65df9b102c70d43ff4991b 
@@ -67,6 +67,14 @@ pipeline {
                 }
             }
         }
-      
+
+        stage (' ***** DEPLOYING TO DEV_ENV ***** ') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId:'john_docker_vm_passwd', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) 
+                    sh "sshpass -p $PASSWORD -v ssh -o StrictHostKeyChecking=no $USERNAME@$dev_ip \"docker images\""
+                }
+            }
+        }
     }
 }
