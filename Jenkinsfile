@@ -12,7 +12,7 @@ pipeline {
         stage (' ****** BUILD STAGE ***** ' ) {
             steps {
                 echo " ***** THIS IS BUILD STAGE ***** "
-                mvn clean package -DskipTest=true
+                sh "mvn clean package -DskipTest=true"
                 archiveArtifacts 'target/*.jar'
             }
         }
