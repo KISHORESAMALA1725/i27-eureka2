@@ -10,7 +10,7 @@ pipeline {
 
     environment {
         APPLICATION_NAME = 'eureka'
-        POM_VERION = readMavenPom().getVersion()
+        POM_VERSION = readMavenPom().getVersion()
         POM_PACKAGING = readMavenPom().getPackaging()
         DOCKER_HUB = 'docker.io/kishoresamala84'
         DOCKER_CREDS = credentials("kishoresamala84_docker_creds")
@@ -39,19 +39,18 @@ pipeline {
                 timeout(time: 2, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
-
             }
-
         }
 
-            stage (' ***** BUILD FORMAT ***** ') {
-                steps {
-                    script {
-                    sh "echo SOURCE JAR file i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING}"
-                    sh "echo TARGER JAR file i27-${env.APPLICATION_NAME}-${currentBuild.number}-${BRANCH_NAME}.${env.POM_PACKAGING}"
-
-                    }
+        stage (' ***** BUILD FORMAT ***** ') {
+            steps {
+                script {
+                     sh "echo SOURCE JAR file i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING}"
+                     sh "echo TARGER JAR file i27-${env.APPLICATION_NAME}-${currentBuild.number}-${BRANCH_NAME}.${env.POM_PACKAGING}"
                 }
-            }        
+            }
+        }
+
+        stage (' ***** DOCKER BUILD AND PUSH ***** ')        
     }
 }
