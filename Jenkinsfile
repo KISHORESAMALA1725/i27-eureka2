@@ -1,33 +1,37 @@
 pipeline {
     agent {
-        label "k8s-slave"
+        label 'k8s-slave'
+    }
+    parameters {
+        choice(name: 'buildOnly', choices: 'no\nyes', description: 'this will run maven build')
+        choice(name: 'scanOnly',  choices: 'no\nyes', description: 'this will run sonarscans')
+        choice(name: 'dockerPush',choices: 'no\nyes', description: 'this will trigger build,sonarscan,image is build & pushed to repo')
+        choice(name: 'deploytoDev', choices: 'no\nyes', description: 'this will deploy to dev')
+        choice(name: 'deploytoTest', choices: 'no\nyes', description: 'this will deploy to test')
+        choice(name: 'deploytoStage', choices: 'no\nyes', description: 'this will deploy to stage')
+        choice(name: 'deploytoProd', choices: 'no\nyes', description: 'this will deploy to prod')
     }
 
     tools {
-        maven "maven-3.8.8"
-        jdk "JDK-17"
+        maven 'Maven-3.8.8'
+        jdk 'JDK-17'
     }
-
-    parameters {
-        choice(name: 'buildOnly', choices: 'no\nyes', description: 'MVN build application')
-        choice(name: 'scanOnly', choices: 'no\nyes', description: 'SonarQube scan app')
-        choice(name: 'dockerbuildandpush', choices: 'no\nyes', description: 'dockerbuildandpush')
-        choice(name: 'deploytodev', choices: 'no\nyes', description: 'deploy to dev')
-        choice(name: 'deploytotest', choices: 'no\nyes', description: 'deploy to test')
-        choice(name: 'deploytostage', choices: 'no\nyes', description: 'deploy to stage')
-        choice(name: 'deploytoprod', choices: 'no\nyes', description: 'deploytoprod')
-    }
-
+    
     environment {
-        APPLICATION_NAME = 'eureka'
+        APPLICATION_NAME="${pipelineParams.appName}"
+        DEV_HOST_PORT = "${pipelineParams.devHostPort}"
+        TEST_HOST_PORT = "${pipelineParams.testHostPort}"
+        STAGE_HOST_PORT = "${pipelineParams.stageHostPort}"
+        PROD_HOST_PORT = "${pipelineParams.prodHostPort}"
+        CONT_PORT = "${pipelineParams.contPort}"
         POM_VERSION = readMavenPom().getVersion()
         POM_PACKAGING = readMavenPom().getPackaging()
-        DOCKER_HUB = 'docker.io/kishoresamala84'
-        DOCKER_CREDS = credentials("kishoresamala84_docker_creds")
+        DOCKER_HUB = "docker.io/kishoresamala84"
+        DOCKER_CREDS = credentials("kishoresamala_docker_creds")
     }
 
     stages {
-        stage (' ****** BUILD STAGE ***** ' ) {
+        stage (' ***** BUILD STAGE ***** ') {
             when {
                 expression {
                     params.buildOnly == 'yes'
@@ -35,24 +39,31 @@ pipeline {
             }
             steps {
                 script {
-                    buildApp().call()
+                    docker.buildApp("${env.APPLICATION_NAME}")
                 }
-
             }
         }
 
         stage (' ***** SONARQUBE STAGE ***** ') {
+            when {
+                anyOf {
+                expression {
+                    params.buildOnly == 'yes'
+                    params.scanOnly == 'yes'                    
+                    params.dockerPush == 'yes'
+                }
+            }
+
+            }
             steps {
-                script {
-                echo " ***** SONARQUBE STAGE ***** "
-                    withSonarQubeEnv('sonarqube') {
-                        sh """
-                         mvn clean verify sonar:sonar \
-                        -Dsonar.projectKey=i27-eureka2 \
-                        -Dsonar.host.url=http://34.48.14.175:9000 \
-                        -Dsonar.login=sqa_1770f1190375e8cf9d65df9b102c70d43ff4991b 
-                        """                   
-                    }                    
+                echo "***** sonar stage implementing *****"                
+                withSonarQubeEnv('sonarqube') {
+                    sh """
+                         mvn sonar:sonar \
+                            -Dsonar.projectKey=i27-eureka \
+                            -Dsonar.host.url=http://34.48.14.175:9000 \
+                            -Dsonar.login=sqa_e27457e7a7bce38fdd73f05e767b4368d7355ee3
+                    """
                 }
                 timeout(time: 2, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
@@ -60,11 +71,15 @@ pipeline {
             }
         }
 
-        stage (' ***** BUILD FORMAT ***** ') {
+        stage ('BUILD-FORMAT') {
             steps {
                 script {
-                     sh "echo SOURCE JAR file i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING}"
-                     sh "echo TARGER JAR file i27-${env.APPLICATION_NAME}-${currentBuild.number}-${BRANCH_NAME}.${env.POM_PACKAGING}"
+                    // Existing : i27-eureka-0.0.1-SNAPSHOT.jar
+                    // Destination: i27-eureka-buildnumber-branchname.packagin
+                    sh """
+                    echo "Testing source jar-source: i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING}"
+                    echo "Tesing destination Jar: i27-${env.APPLICATION_NAME}-${currentBuild.number}-${BRANCH_NAME}.${env.POM_PACKAGING}"
+                    """ 
                 }
             }
         }
@@ -72,73 +87,94 @@ pipeline {
         stage (' ***** Docker-Build-Push ***** ') {
             when {
                 expression {
-                    params.buildOnly == 'yes'
-                    params.scanOnly == 'yes'
-                    params.dockerbuildandpush == 'yes'
+                    params.dockerPush == 'yes'
                 }
             }
             steps {
                 script {
-                  dockerBuildPush().call()
+                    dockerBuildAndPush().call()
+            }
+        }
+
+      }
+
+        stage (' ***** Deploy to dev ***** ') {
+            when {
+                expression {
+                    params.deploytoDev == 'yes'
+                }
+            }
+            steps {
+                script{
+                    dockerDeploy('dev','5001','8761').call()
+                }
+
+            }
+        }
+
+        stage (' ***** Deploy to Test ***** ') {
+            when {
+                expression {
+                    params.deploytoTest == 'yes'
+                }
+            }
+            steps {
+                script {
+                    dockerDeploy('test','5002','8761')
                 }
             }
         }
 
-        stage (' ***** Deploy to DEV-ENV ***** ') {
+        stage (' ***** Deploy to Stage ***** ') {
             when {
-                expression {
-                    params.deploytodev == 'yes'
+                allOf{
+                    anyOf{
+                        expression {
+                            params.deploytoStage == 'yes'
+                        }
+                    }
+                    anyOf{ 
+                            branch 'release/*'
+                            tag pattern: "v\\d{1,2}\\.\\d{1,2}\\.\\d{1,2\\}", comparator: "REGEXP"
+ 
+                    }
                 }
             }
-            steps {
-                script {
-                    deployToDocker('dev','5001','8761').call()
-                }
-            }
-         }
 
-         stage (' ***** Deploy to TEST-ENV ***** ') {
-            when {
-                expression {
-                    params.deploytotest == 'yes'
-                }
-            }
-            steps {
-                script {
-                    deployToDocker('test','5002','8761').call()
-                }
-            }
-         }
-
-         stage (' ***** Deploy to STAGE-ENV ***** ') {
-            when {
-                expression {
-                    params.deploytostage == 'yes'
-                }
-            }
             steps {
                 script {
                     imageValidation().call()
-                    deployToDocker('stage','5003','8761').call()
+                    dockerDeploy('stage','5003','8761')
                 }
             }
-         }
+        }
 
-         stage (' ***** Deploy to PROD-ENV ***** ') {
+        stage (' ***** Deploy to PROD ***** ') {
             when {
-                expression {
-                    params.deploytoprod == 'yes'
+                allOf {
+                    anyOf{
+                      expression {
+                         params.deploytoProd == 'yes'
+                    }
+                }
+                anyOf {
+                    branch 'release/*'
+                    tag pattern: "v.\\d{1,2\\}.\\d{1,2}.\\d{1,2}\\"
+                }
+
                 }
             }
             steps {
                 script {
-                    deploytoprod('prod','5004','8761').call()
+                    dockerDeploy('prod','5004','8761')
                 }
             }
         }
-      
     }
 }
+    
+}
+
 
 
 def buildApp() {
@@ -149,8 +185,23 @@ def buildApp() {
     }
 }
 
+def imageValidation() {
+    return {
+        println(' *****Attempting to pulling the docker image***** ')
+        try {
+            sh "docker pull ${env.DOCKER_HUB}/${env.APPLICATON_NAME}:${GIT_COMMIT}"
+            println('*****Docker Image Pulled successfully')
+        }
+        catch (Exception e){
+            echo "OOOPPSSS!!! Docker Image with this tag is not found, so image is building now"
+            buildApp().call()
+            dockerBuildAndPush().call()
+        }
 
-def dockerBuildPush() {
+    }
+}
+
+def dockerBuildAndPush() {
     return {
         echo "****** Building Doker image *******"                    
         sh "cp ${WORKSPACE}/target/i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING} ./.cicd"
@@ -159,30 +210,6 @@ def dockerBuildPush() {
         echo "****** Building Doker image *******" 
         sh "docker push ${DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}"                    
        }        
-}
-
-// def imageValidation() {
-//     echo '***** Attempting to pull the Docker image *****'
-//     try {
-//         sh "docker pull ${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}"
-//         echo '***** Docker Image Pulled successfully *****'
-//     } catch (Exception e) {
-//         echo "OOOPS!!! Docker Image with this tag is not found, so building the image now..."
-//         buildApp()
-//         dockerBuildAndPush()
-//     }
-// }
-
-def imageValidation () {
-    echo ' ***** Attempting to pull the Docker Image ***** '
-    try {
-        "sh docker pull ${DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}"
-         echo ' **** Image pulled successfully ***** '
-    } catch (Exception e) {
-        echo "OOPPPSSS!!!Docker image with this tag not found, building the image"
-            buildApp()
-            dockerBuildPush()
-    }
 }
 
 def dockerDeploy(envDeploy, hostPort, contPort) {
