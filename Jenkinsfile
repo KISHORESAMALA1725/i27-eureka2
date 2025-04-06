@@ -18,7 +18,7 @@ pipeline {
     }
     
     environment {
-        APPLICATION_NAME="${pipelineParams.appName}"
+        APPLICATION_NAME="eureka"
         // DEV_HOST_PORT = "${pipelineParams.devHostPort}"
         // TEST_HOST_PORT = "${pipelineParams.testHostPort}"
         // STAGE_HOST_PORT = "${pipelineParams.stageHostPort}"
