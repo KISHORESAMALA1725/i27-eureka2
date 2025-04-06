@@ -181,8 +181,8 @@ def imageValidation () {
     }
     catch (Exception e) {
         echo "OOPPPSSS!!!Docker image with this tag not found, building the image"
-        buildApp().call()
-        dockerBuildPush().call()
+            buildApp()
+            dockerBuildPush()
     }
 }
 
