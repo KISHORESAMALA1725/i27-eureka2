@@ -89,7 +89,7 @@ pipeline {
             }
             steps {
                 script {
-                    deployToDocker('dev', '5001', '8761')
+                    deployToDocker('dev', '5005', '8761')
                 }
             }
         }
@@ -102,7 +102,7 @@ pipeline {
             }
             steps {
                 script {
-                    deployToDocker('test', '5002', '8761')
+                    deployToDocker('test', '5006', '8761')
                 }
             }
         }
@@ -116,7 +116,7 @@ pipeline {
             steps {
                 script {
                     imageValidation()
-                    deployToDocker('stage', '5003', '8761')
+                    deployToDocker('stage', '5007', '8761')
                 }
             }
         }
@@ -129,7 +129,7 @@ pipeline {
             }
             steps {
                 script {
-                    deployToDocker('prod', '5004', '8761')
+                    deployToDocker('prod', '5008', '8761')
                 }
             }
         }
