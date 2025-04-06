@@ -177,9 +177,8 @@ def imageValidation () {
     echo ' ***** Attempting to pull the Docker Image ***** '
     try {
         "sh docker pull ${DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}"
-        echo ' **** Image pulled successfully ***** '
-    }
-    catch (Exception e) {
+         echo ' **** Image pulled successfully ***** '
+    } catch (Exception e) {
         echo "OOPPPSSS!!!Docker image with this tag not found, building the image"
             buildApp()
             dockerBuildPush()
