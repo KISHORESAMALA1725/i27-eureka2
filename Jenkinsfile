@@ -118,6 +118,7 @@ pipeline {
             }
             steps {
                 script {
+                    imageValidation().call()
                     deployToDocker('stage','5003','8761').call()
                 }
             }
@@ -131,15 +132,74 @@ pipeline {
             }
             steps {
                 script {
-                    echo "****** Building Doker image *******"                    
-                    sh "cp ${WORKSPACE}/target/i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING} ./.cicd"
-                    sh "docker build --no-cache --build-arg JAR_SOURCE=i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING} -t ${DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT} ./.cicd "
-                    sh "docker login -u ${DOCKER_CREDS_USR} -p ${DOCKER_CREDS_PSW}"
-                    echo "****** Building Doker image *******" 
-                    sh "docker push ${DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}"                    
+                    deploytoprod('prod','5004','8761')
                 }
             }
         }
       
+    }
+}
+
+
+def buildApp() {
+    return {
+            echo "*****Building the Application *****"
+            sh "mvn clean package -DskipTest=true"
+            archiveArtifacts 'target/*.jar'        
+    }
+}
+
+
+def dockerBuildPush() {
+    return {
+        echo "****** Building Doker image *******"                    
+        sh "cp ${WORKSPACE}/target/i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING} ./.cicd"
+        sh "docker build --no-cache --build-arg JAR_SOURCE=i27-${env.APPLICATION_NAME}-${env.POM_VERSION}.${env.POM_PACKAGING} -t ${DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT} ./.cicd "
+        sh "docker login -u ${DOCKER_CREDS_USR} -p ${DOCKER_CREDS_PSW}"
+        echo "****** Building Doker image *******" 
+        sh "docker push ${DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}"                    
+       }        
+}
+
+// def imageValidation() {
+//     echo '***** Attempting to pull the Docker image *****'
+//     try {
+//         sh "docker pull ${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}"
+//         echo '***** Docker Image Pulled successfully *****'
+//     } catch (Exception e) {
+//         echo "OOOPS!!! Docker Image with this tag is not found, so building the image now..."
+//         buildApp()
+//         dockerBuildAndPush()
+//     }
+// }
+
+def imageValidation () {
+    echo ' ***** Attempting to pull the Docker Image ***** '
+    try {
+        "sh docker pull ${DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}"
+        echo ' **** Image pulled successfully ***** '
+    }
+    catch (Exception e) {
+        echo "OOPPPSSS!!!Docker image with this tag not found, building the image"
+        buildApp()
+        dockerBuildPush()
+    }
+}
+
+def dockerDeploy(envDeploy, hostPort, contPort) {
+    return {
+                echo " ***** deploy to $envDeploy env ***** "
+                withCredentials([usernamePassword(credentialsId: 'john_docker_vm_passwd', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                        script {    
+                            try {
+                                sh "sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no '$USERNAME'@$dev_ip \"docker stop ${env.APPLICATION_NAME}-dev \""
+                                sh "sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no '$USERNAME'@$dev_ip \"docker rm ${env.APPLICATION_NAME}-dev \""
+                            }
+                            catch(err){
+                                echo "Error Caught: $err"                      
+                            }  
+                            sh "sshpass -p '$PASSWORD' -v ssh -o StrictHostKeyChecking=no '$USERNAME'@$dev_ip \"docker container run -dit -p $hostPort:$contPort --name ${env.APPLICATION_NAME}-dev ${env.DOCKER_HUB}/${env.APPLICATION_NAME}:${GIT_COMMIT}\""                    
+                        }
+                   }
     }
 }
