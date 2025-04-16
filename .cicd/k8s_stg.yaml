@@ -2,33 +2,33 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: i27-eureka-stg
+  name: i27-eureka-stage
   labels:
-    app: i27-eureka-stg
+    app: i27-eureka-stage
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: i27-eureka-stg
+      app: i27-eureka-stage
   template:
     metadata:
       labels:
-        app: i27-eureka-stg
+        app: i27-eureka-stage
     spec:
       containers:
-      - name: i27-eureka-stg
+      - name: i27-eureka-stage
         image: DIT # Image tag will be replaced by shared library
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: i27-eureka-stg
+  name: i27-eureka-stage
   labels:
-    app: i27-eureka-stg
+    app: i27-eureka-stage
 spec:
   type: NodePort
   ports:
   - port: 8761
     targetPort: 8761
   selector:
-    app: i27-eureka-stg 
+    app: i27-eureka-stage 
