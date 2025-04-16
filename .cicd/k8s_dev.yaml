@@ -15,8 +15,8 @@ spec:
       labels:
         app: i27-eureka-dev
     spec:
-      imagePullSecrets:
-      - name: jfrog-registry
+      # imagePullSecrets:
+      # - name: jfrog-registry
       containers:
       - name: i27-eureka-dev
         image: DIT # Image tag will be replaced by shared library
